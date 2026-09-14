@@ -42,7 +42,7 @@ def load_documents(docs_path):
 
 
 def split_documents(documents):
-    text_splitter = CharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
+    text_splitter = CharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
 
     chunks = text_splitter.split_documents(documents=documents)
 
