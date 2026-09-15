@@ -1,5 +1,5 @@
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 import os, sys
@@ -42,7 +42,9 @@ def load_documents(docs_path):
 
 
 def split_documents(documents):
-    text_splitter = CharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, chunk_overlap=50, separators=["\n\n", "\n", ".", " ", ""]
+    )
 
     chunks = text_splitter.split_documents(documents=documents)
 
@@ -59,12 +61,29 @@ def get_embedding_model():
 def create_vector_store(chunks, persist_directory):
     embedding_model = get_embedding_model()
 
-    vector_store = Chroma.from_documents(
-        embedding=embedding_model,
-        documents=chunks,
+    # vector_store = Chroma.from_documents(
+    #     embedding=embedding_model,
+    #     documents=chunks,
+    #     persist_directory=persist_directory,
+    #     collection_metadata={"hnsw:space": "cosine"},
+    # )
+
+    vector_store = Chroma(
+        embedding_function=embedding_model,
         persist_directory=persist_directory,
         collection_metadata={"hnsw:space": "cosine"},
     )
+
+    batch_size = 100
+
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+        print(
+            f"Processing chunks {i + 1}-"
+            f"{min(i + batch_size, len(chunks))} "
+            f"of {len(chunks)}"
+        )
+        vector_store.add_documents(batch)
 
     return vector_store
 
